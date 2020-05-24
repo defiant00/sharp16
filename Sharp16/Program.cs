@@ -3,17 +3,17 @@ using System;
 
 namespace Sharp16
 {
-	class Program
+	public class Program
 	{
-		const int SCREEN_WIDTH = 512;
-		const int SCREEN_HEIGHT = 288;
+		private const int SCREEN_WIDTH = 512;
+		private const int SCREEN_HEIGHT = 288;
 
-		static IntPtr _window;
-		static IntPtr _screenSurface;
-		static IntPtr _renderer;
-		static Graphics _baseGraphics;
-		static Graphics _effectGraphics;
-		static Cartridge _cart;
+		private static IntPtr _window;
+		private static IntPtr _screenSurface;
+		private static IntPtr _renderer;
+		private static Graphics _baseGraphics;
+		private static Graphics _effectGraphics;
+		private static Cartridge _cart;
 
 		static void Main(string[] args)
 		{
@@ -52,33 +52,46 @@ namespace Sharp16
 			CleanupSDL();
 		}
 
-		static void Test()
+		private static void Test()
 		{
 			_cart = new Cartridge(@"
-
 using Sharp16;
 
-class TestGame : SharpGame
+namespace Test
 {
-	public void override DrawBase(Graphics g)
+	class TestGame : SharpGame
 	{
-		g.Clear(0, 0);
-		g.FillRect(10, 10, 10, 10, 0, 1);
-		g.FillRect(24, 10, 10, 10, 0, 2);
-		g.FillRect(38, 10, 10, 10, 0, 3);
-		g.FillRect(52, 10, 10, 10, 0, 4);
+		public override void DrawBase(Graphics g)
+		{
+			g.Clear(0, 0);
+			for (int i = 0; i < 3; i++)
+			{
+				g.FillRect(10, 10 + i * 64, 64, 64, 0, i * 4 + 1);
+				g.FillRect(74, 10 + i * 64, 64, 64, 0, i * 4 + 2);
+				g.FillRect(138, 10 + i * 64, 64, 64, 0, i * 4 + 3);
+				g.FillRect(202, 10 + i * 64, 64, 64, 0, i * 4 + 4);
+			}
+		}
 	}
 }
 ");
 			_cart.Palettes.Add(new Color[16]);
 			_cart.Palettes[0][0] = new Color(0, 0, 0, 1);
-			_cart.Palettes[0][1] = new Color(31, 0, 0, 1);
-			_cart.Palettes[0][2] = new Color(0, 31, 0, 1);
-			_cart.Palettes[0][3] = new Color(0, 0, 31, 1);
-			_cart.Palettes[0][4] = new Color(31, 31, 31, 1);
+			_cart.Palettes[0][1] = new Color(7, 0, 0, 1);
+			_cart.Palettes[0][2] = new Color(0, 7, 0, 1);
+			_cart.Palettes[0][3] = new Color(0, 0, 7, 1);
+			_cart.Palettes[0][4] = new Color(7, 7, 7, 1);
+			_cart.Palettes[0][5] = new Color(15, 0, 0, 1);
+			_cart.Palettes[0][6] = new Color(0, 15, 0, 1);
+			_cart.Palettes[0][7] = new Color(0, 0, 15, 1);
+			_cart.Palettes[0][8] = new Color(15, 15, 15, 1);
+			_cart.Palettes[0][9] = new Color(31, 0, 0, 1);
+			_cart.Palettes[0][10] = new Color(0, 31, 0, 1);
+			_cart.Palettes[0][11] = new Color(0, 0, 31, 1);
+			_cart.Palettes[0][12] = new Color(31, 31, 31, 1);
 		}
 
-		static void InitSDL()
+		private static void InitSDL()
 		{
 			SDL.SDL_SetHint(SDL.SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING, "1");
 			if (SDL.SDL_Init(SDL.SDL_INIT_VIDEO) < 0)
@@ -101,7 +114,7 @@ class TestGame : SharpGame
 			_effectGraphics = new Graphics(_renderer, _cart);
 		}
 
-		static void Draw()
+		private static void Draw()
 		{
 			SDL.SDL_RenderClear(_renderer);
 			_cart.Game.DrawEffects(_effectGraphics);
@@ -111,7 +124,7 @@ class TestGame : SharpGame
 			SDL.SDL_RenderPresent(_renderer);
 		}
 
-		static void CleanupSDL()
+		private static void CleanupSDL()
 		{
 			SDL.SDL_FreeSurface(_screenSurface);
 			SDL.SDL_DestroyRenderer(_renderer);

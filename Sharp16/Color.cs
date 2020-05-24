@@ -1,6 +1,6 @@
 ﻿namespace Sharp16
 {
-	struct Color
+	public struct Color
 	{
 		public byte R, G, B, A;
 
