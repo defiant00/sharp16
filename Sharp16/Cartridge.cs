@@ -1,7 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 
@@ -9,7 +8,6 @@ namespace Sharp16
 {
 	public class Cartridge
 	{
-		public List<Color[]> Palettes = new List<Color[]>();
 		public SharpGame Game = new SharpGame();    // Should probably remove the default initialization later
 		private static readonly string SystemRuntimeLocation = Assembly.Load("System.Runtime").Location;
 		private CartAssemblyLoadContext _context;
