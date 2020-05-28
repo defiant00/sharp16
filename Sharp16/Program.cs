@@ -5,8 +5,8 @@ namespace Sharp16
 {
 	public class Program
 	{
-		private const int SCREEN_WIDTH = 512;
-		private const int SCREEN_HEIGHT = 288;
+		private const int SCREEN_WIDTH = 16 * 24;
+		private const int SCREEN_HEIGHT = 9 * 24;
 
 		private static IntPtr _window;
 		private static IntPtr _screenSurface;
