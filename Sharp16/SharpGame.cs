@@ -10,7 +10,6 @@ namespace Sharp16
 		Alpha,
 		Average,
 		Multiply,
-		Subtract
 	}
 
 	public class SharpGame
@@ -123,9 +122,6 @@ namespace Sharp16
 				case BlendMode.Multiply:
 					SDL.SDL_SetTextureAlphaMod(_effectsBuffer, 255);
 					SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_MUL);
-					break;
-				case BlendMode.Subtract:
-					SDL.SDL_SetTextureAlphaMod(_effectsBuffer, 255);
 					break;
 			}
 		}

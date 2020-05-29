@@ -71,14 +71,14 @@ namespace Test
 
 		public override void DrawEffects()
 		{
-			SetEffects(BlendMode.Subtract);
+			SetEffects(BlendMode.Add);
 			FillRect(30, 30, 140, 140, 1, 0);
 		}
 	}
 }
 ");
 			_cart.Game._palettes.Add(new Color[16]);
-			_cart.Game._palettes[0][0] = new Color(0, 0, 0, 1);
+			_cart.Game._palettes[0][0] = new Color(4, 4, 4, 1);
 			_cart.Game._palettes[0][1] = new Color(7, 0, 0, 1);
 			_cart.Game._palettes[0][2] = new Color(0, 7, 0, 1);
 			_cart.Game._palettes[0][3] = new Color(0, 0, 7, 1);
