@@ -11,6 +11,7 @@ namespace Sharp16
 		private static IntPtr _window;
 		private static IntPtr _renderer;
 		private static IntPtr _effectsBuffer;
+		private static bool _fullscreen = false;
 		private static Cartridge _cart;
 
 		static void Main(string[] args)
@@ -29,6 +30,13 @@ namespace Sharp16
 						case SDL.SDL_EventType.SDL_KEYDOWN:
 							switch (e.key.keysym.sym)
 							{
+								case SDL.SDL_Keycode.SDLK_RETURN:
+									if ((e.key.keysym.mod & SDL.SDL_Keymod.KMOD_ALT) > 0)
+									{
+										_fullscreen = !_fullscreen;
+										SDL.SDL_SetWindowFullscreen(_window, _fullscreen ? (uint)SDL.SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+									}
+									break;
 								case SDL.SDL_Keycode.SDLK_ESCAPE:
 									run = false;
 									break;
