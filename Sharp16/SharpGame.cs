@@ -4,6 +4,15 @@ using System.Collections.Generic;
 
 namespace Sharp16
 {
+	public enum BlendMode
+	{
+		Add,
+		Alpha,
+		Average,
+		Multiply,
+		Subtract
+	}
+
 	public class SharpGame
 	{
 		public virtual void DrawEffects() { }
@@ -13,16 +22,32 @@ namespace Sharp16
 
 		internal List<Color[]> _palettes = new List<Color[]>();
 		internal IntPtr _renderer;
+		internal IntPtr _effectsBuffer;
+
+		internal void Draw()
+		{
+			SDL.SDL_SetRenderTarget(_renderer, _effectsBuffer);
+			SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 0);
+			SDL.SDL_RenderClear(_renderer);
+			DrawEffects();
+			SDL.SDL_SetRenderTarget(_renderer, IntPtr.Zero);
+			SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
+			SDL.SDL_RenderClear(_renderer);
+			DrawBase();
+			SDL.SDL_RenderCopy(_renderer, _effectsBuffer, IntPtr.Zero, IntPtr.Zero);
+			DrawTop();
+			SDL.SDL_RenderPresent(_renderer);
+		}
 
 		public void Clear()
 		{
-			SDL.SDL_RenderClear(_renderer);
+			SDL.SDL_RenderFillRect(_renderer, IntPtr.Zero);
 		}
 
 		public void Clear(int palette, int color)
 		{
 			SetColor(palette, color);
-			SDL.SDL_RenderClear(_renderer);
+			SDL.SDL_RenderFillRect(_renderer, IntPtr.Zero);
 		}
 
 		public void DrawLine(int x1, int y1, int x2, int y2)
@@ -77,6 +102,32 @@ namespace Sharp16
 		{
 			var c = _palettes[palette][color];
 			SDL.SDL_SetRenderDrawColor(_renderer, c.R, c.G, c.B, c.A);
+		}
+
+		public void SetEffects(BlendMode mode)
+		{
+			switch (mode)
+			{
+				case BlendMode.Add:
+					SDL.SDL_SetTextureAlphaMod(_effectsBuffer, 255);
+					SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_ADD);
+					break;
+				case BlendMode.Alpha:
+					SDL.SDL_SetTextureAlphaMod(_effectsBuffer, 255);
+					SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
+					break;
+				case BlendMode.Average:
+					SDL.SDL_SetTextureAlphaMod(_effectsBuffer, 127);
+					SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
+					break;
+				case BlendMode.Multiply:
+					SDL.SDL_SetTextureAlphaMod(_effectsBuffer, 255);
+					SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_MUL);
+					break;
+				case BlendMode.Subtract:
+					SDL.SDL_SetTextureAlphaMod(_effectsBuffer, 255);
+					break;
+			}
 		}
 	}
 }

@@ -9,18 +9,15 @@ namespace Sharp16
 		private const int SCREEN_HEIGHT = 9 * 24;
 
 		private static IntPtr _window;
-		private static IntPtr _screenSurface;
-		private static IntPtr _baseRenderer;
-		private static IntPtr _effectsRenderer;
+		private static IntPtr _renderer;
+		private static IntPtr _effectsBuffer;
 		private static Cartridge _cart;
 
 		static void Main(string[] args)
 		{
-			Test();
-
 			InitSDL();
 
-			SDL.SDL_SetRenderDrawColor(_baseRenderer, 0, 0xff, 0x8f, 0xff);
+			Test();
 
 			bool run = true;
 			while (run)
@@ -45,7 +42,7 @@ namespace Sharp16
 
 				_cart.Game.Update();
 
-				Draw();
+				_cart.Game.Draw();
 			}
 
 			CleanupSDL();
@@ -71,6 +68,12 @@ namespace Test
 				FillRect(202, 10 + i * 64, 64, 64, 0, i * 4 + 4);
 			}
 		}
+
+		public override void DrawEffects()
+		{
+			SetEffects(BlendMode.Subtract);
+			FillRect(30, 30, 140, 140, 1, 0);
+		}
 	}
 }
 ");
@@ -88,6 +91,12 @@ namespace Test
 			_cart.Game._palettes[0][10] = new Color(0, 31, 0, 1);
 			_cart.Game._palettes[0][11] = new Color(0, 0, 31, 1);
 			_cart.Game._palettes[0][12] = new Color(31, 31, 31, 1);
+
+			_cart.Game._palettes.Add(new Color[16]);
+			_cart.Game._palettes[1][0] = new Color(15, 15, 0, 1);
+
+			_cart.Game._renderer = _renderer;
+			_cart.Game._effectsBuffer = _effectsBuffer;
 		}
 
 		private static void InitSDL()
@@ -106,27 +115,16 @@ namespace Test
 				Console.WriteLine("Window creation error: " + SDL.SDL_GetError());
 			}
 
-			_screenSurface = SDL.SDL_GetWindowSurface(_window);
-			_baseRenderer = SDL.SDL_CreateRenderer(_window, -1, SDL.SDL_RendererFlags.SDL_RENDERER_ACCELERATED);
-			_effectsRenderer = _baseRenderer;	// TODO - separate renderer
-		}
-
-		private static void Draw()
-		{
-			_cart.Game._renderer = _effectsRenderer;
-			_cart.Game.DrawEffects();
-			_cart.Game._renderer = _baseRenderer;
-			_cart.Game.DrawBase();
-			// TODO - blend effects
-			_cart.Game.DrawTop();
-			SDL.SDL_RenderPresent(_baseRenderer);
+			_renderer = SDL.SDL_CreateRenderer(_window, -1, SDL.SDL_RendererFlags.SDL_RENDERER_ACCELERATED);
+			SDL.SDL_RenderSetLogicalSize(_renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+			_effectsBuffer = SDL.SDL_CreateTexture(_renderer, SDL.SDL_PIXELFORMAT_RGBA8888, (int)SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH, SCREEN_HEIGHT);
+			SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
 		}
 
 		private static void CleanupSDL()
 		{
-			SDL.SDL_FreeSurface(_screenSurface);
-			SDL.SDL_DestroyRenderer(_effectsRenderer);
-			SDL.SDL_DestroyRenderer(_baseRenderer);
+			SDL.SDL_DestroyTexture(_effectsBuffer);
+			SDL.SDL_DestroyRenderer(_renderer);
 			SDL.SDL_DestroyWindow(_window);
 			SDL.SDL_Quit();
 		}
