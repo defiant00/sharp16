@@ -5,14 +5,29 @@ namespace Sharp16
 {
 	public class Program
 	{
-		private const int SCREEN_WIDTH = 16 * 24;
-		private const int SCREEN_HEIGHT = 9 * 24;
+		private const int SCREEN_WIDTH = 16 * 32;	// 512
+		private const int SCREEN_HEIGHT = 9 * 32;	// 288
+		private const int SCREEN_FPS = 60;
+		private const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
 		private static IntPtr _window;
 		private static IntPtr _renderer;
 		private static IntPtr _effectsBuffer;
 		private static bool _fullscreen = false;
 		private static Cartridge _cart;
+
+		private static int _keyUp = (int)SDL.SDL_Scancode.SDL_SCANCODE_UP;
+		private static int _keyDown = (int)SDL.SDL_Scancode.SDL_SCANCODE_DOWN;
+		private static int _keyLeft = (int)SDL.SDL_Scancode.SDL_SCANCODE_LEFT;
+		private static int _keyRight = (int)SDL.SDL_Scancode.SDL_SCANCODE_RIGHT;
+		private static int _keyA = (int)SDL.SDL_Scancode.SDL_SCANCODE_Z;
+		private static int _keyB = (int)SDL.SDL_Scancode.SDL_SCANCODE_X;
+		private static int _keyX = (int)SDL.SDL_Scancode.SDL_SCANCODE_A;
+		private static int _keyY = (int)SDL.SDL_Scancode.SDL_SCANCODE_S;
+		private static int _keyL = (int)SDL.SDL_Scancode.SDL_SCANCODE_Q;
+		private static int _keyR = (int)SDL.SDL_Scancode.SDL_SCANCODE_W;
+		private static int _keyStart = (int)SDL.SDL_Scancode.SDL_SCANCODE_RETURN;
+
 
 		static void Main(string[] args)
 		{
@@ -23,6 +38,8 @@ namespace Sharp16
 			bool run = true;
 			while (run)
 			{
+				uint startTicks = SDL.SDL_GetTicks();
+
 				while (SDL.SDL_PollEvent(out SDL.SDL_Event e) != 0)
 				{
 					switch (e.type)
@@ -48,9 +65,34 @@ namespace Sharp16
 					}
 				}
 
-				_cart.Game.Update();
+				// Update input state
+				_cart.Game.Input.Prior = _cart.Game.Input.Current;
+				unsafe
+				{
+					byte* keys = (byte*)SDL.SDL_GetKeyboardState(out _);
+					_cart.Game.Input.Current.Up = keys[_keyUp] == 1;
+					_cart.Game.Input.Current.Down = keys[_keyDown] == 1;
+					_cart.Game.Input.Current.Left = keys[_keyLeft] == 1;
+					_cart.Game.Input.Current.Right = keys[_keyRight] == 1;
+					_cart.Game.Input.Current.A = keys[_keyA] == 1;
+					_cart.Game.Input.Current.B = keys[_keyB] == 1;
+					_cart.Game.Input.Current.X = keys[_keyX] == 1;
+					_cart.Game.Input.Current.Y = keys[_keyY] == 1;
+					_cart.Game.Input.Current.L = keys[_keyL] == 1;
+					_cart.Game.Input.Current.R = keys[_keyR] == 1;
+					_cart.Game.Input.Current.Start = keys[_keyStart] == 1;
+				}
 
+				// Update and draw game
+				_cart.Game.Update();
 				_cart.Game.Draw();
+
+				// Operate at a fixed 60 fps
+				uint ticksTaken = SDL.SDL_GetTicks() - startTicks;
+				if (ticksTaken < SCREEN_TICKS_PER_FRAME)
+				{
+					SDL.SDL_Delay(SCREEN_TICKS_PER_FRAME - ticksTaken);
+				}
 			}
 
 			CleanupSDL();
@@ -65,8 +107,26 @@ namespace Test
 {
 	class TestGame : SharpGame
 	{
+		public int x = 30, y = 30;
+
+		public override void Update()
+		{
+			if (Input.Current.Up) y--;
+			else if (Input.Current.Down) y++;
+
+			if (Input.Current.Left) x--;
+			else if (Input.Current.Right) x++;
+
+			if (Input.Current.B && !Input.Prior.B)
+			{
+				x = 30;
+				y = 30;
+			}
+		}
+
 		public override void DrawBase()
 		{
+			SetClipRect(50, 50, 100, 100);
 			Clear(0, 0);
 			for (int i = 0; i < 3; i++)
 			{
@@ -80,7 +140,7 @@ namespace Test
 		public override void DrawEffects()
 		{
 			SetEffects(BlendMode.Add);
-			FillRect(30, 30, 140, 140, 1, 0);
+			FillRect(x, y, 128, 128, 1, 0);
 		}
 	}
 }

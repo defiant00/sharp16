@@ -19,6 +19,8 @@ namespace Sharp16
 		public virtual void DrawTop() { }
 		public virtual void Update() { }
 
+		public Inputs Input;
+
 		internal List<Color[]> _palettes = new List<Color[]>();
 		internal IntPtr _renderer;
 		internal IntPtr _effectsBuffer;
@@ -26,13 +28,16 @@ namespace Sharp16
 		internal void Draw()
 		{
 			SDL.SDL_SetRenderTarget(_renderer, _effectsBuffer);
+			SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
 			SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 0);
 			SDL.SDL_RenderClear(_renderer);
 			DrawEffects();
 			SDL.SDL_SetRenderTarget(_renderer, IntPtr.Zero);
+			SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
 			SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
 			SDL.SDL_RenderClear(_renderer);
 			DrawBase();
+			SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
 			SDL.SDL_RenderCopy(_renderer, _effectsBuffer, IntPtr.Zero, IntPtr.Zero);
 			DrawTop();
 			SDL.SDL_RenderPresent(_renderer);
@@ -47,6 +52,11 @@ namespace Sharp16
 		{
 			SetColor(palette, color);
 			SDL.SDL_RenderFillRect(_renderer, IntPtr.Zero);
+		}
+
+		public void ClearClipRect()
+		{
+			SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
 		}
 
 		public void DrawLine(int x1, int y1, int x2, int y2)
@@ -84,6 +94,16 @@ namespace Sharp16
 			SDL.SDL_RenderDrawRect(_renderer, ref rect);
 		}
 
+		public void DrawMap(int x, int y)
+		{
+
+		}
+
+		public void DrawSprite(int x, int y)
+		{
+
+		}
+
 		public void FillRect(int x, int y, int w, int h)
 		{
 			var rect = new SDL.SDL_Rect { x = x, y = y, w = w, h = h };
@@ -95,6 +115,12 @@ namespace Sharp16
 			SetColor(palette, color);
 			var rect = new SDL.SDL_Rect { x = x, y = y, w = w, h = h };
 			SDL.SDL_RenderFillRect(_renderer, ref rect);
+		}
+
+		public void SetClipRect(int x, int y, int w, int h)
+		{
+			var rect = new SDL.SDL_Rect { x = x, y = y, w = w, h = h };
+			SDL.SDL_RenderSetClipRect(_renderer, ref rect);
 		}
 
 		public void SetColor(int palette, int color)
