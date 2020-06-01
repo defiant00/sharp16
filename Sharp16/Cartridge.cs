@@ -12,6 +12,8 @@ namespace Sharp16
 		private static readonly string SystemRuntimeLocation = Assembly.Load("System.Runtime").Location;
 		private CartAssemblyLoadContext _context;
 
+		public Cartridge() { }
+
 		public Cartridge(string code)
 		{
 			Console.Write("Compiling...");
@@ -53,7 +55,7 @@ namespace Sharp16
 
 		~Cartridge()
 		{
-			_context.Unload();
+			_context?.Unload();
 		}
 	}
 }

@@ -19,7 +19,8 @@ namespace Sharp16
 		public virtual void DrawTop() { }
 		public virtual void Update() { }
 
-		public Inputs Input;
+		public Vector2 Camera;
+		public Inputs[] Input = new Inputs[Sharp16.PLAYER_COUNT];
 
 		internal List<Color[]> _palettes = new List<Color[]>();
 		internal IntPtr _renderer;
@@ -51,7 +52,7 @@ namespace Sharp16
 		public void Clear(int palette, int color)
 		{
 			SetColor(palette, color);
-			SDL.SDL_RenderFillRect(_renderer, IntPtr.Zero);
+			Clear();
 		}
 
 		public void ClearClipRect()
@@ -61,60 +62,69 @@ namespace Sharp16
 
 		public void DrawLine(int x1, int y1, int x2, int y2)
 		{
-			SDL.SDL_RenderDrawLine(_renderer, x1, y1, x2, y2);
+			SDL.SDL_RenderDrawLine(_renderer, x1 - Camera.X, y1 - Camera.Y, x2 - Camera.X, y2 - Camera.Y);
 		}
 
 		public void DrawLine(int x1, int y1, int x2, int y2, int palette, int color)
 		{
 			SetColor(palette, color);
-			SDL.SDL_RenderDrawLine(_renderer, x1, y1, x2, y2);
+			DrawLine(x1, y1, x2, y2);
+		}
+
+		public void DrawMap(int map, int x, int y)
+		{
+
 		}
 
 		public void DrawPoint(int x, int y)
 		{
-			SDL.SDL_RenderDrawPoint(_renderer, x, y);
+			SDL.SDL_RenderDrawPoint(_renderer, x - Camera.X, y - Camera.Y);
 		}
 
 		public void DrawPoint(int x, int y, int palette, int color)
 		{
 			SetColor(palette, color);
-			SDL.SDL_RenderDrawPoint(_renderer, x, y);
+			DrawPoint(x, y);
 		}
 
 		public void DrawRect(int x, int y, int w, int h)
 		{
-			var rect = new SDL.SDL_Rect { x = x, y = y, w = w, h = h };
+			var rect = new SDL.SDL_Rect { x = x - Camera.X, y = y - Camera.Y, w = w, h = h };
 			SDL.SDL_RenderDrawRect(_renderer, ref rect);
 		}
 
 		public void DrawRect(int x, int y, int w, int h, int palette, int color)
 		{
 			SetColor(palette, color);
-			var rect = new SDL.SDL_Rect { x = x, y = y, w = w, h = h };
-			SDL.SDL_RenderDrawRect(_renderer, ref rect);
+			DrawRect(x, y, w, h);
 		}
 
-		public void DrawMap(int x, int y)
+		public void DrawSprite(int sprite, int x, int y)
 		{
 
 		}
 
-		public void DrawSprite(int x, int y)
+		public void DrawText(string text, int x, int y)
 		{
+			DrawRect(x, y, text.Length * 6, 12);
+		}
 
+		public void DrawText(string text, int x, int y, int palette, int color)
+		{
+			SetColor(palette, color);
+			DrawText(text, x, y);
 		}
 
 		public void FillRect(int x, int y, int w, int h)
 		{
-			var rect = new SDL.SDL_Rect { x = x, y = y, w = w, h = h };
+			var rect = new SDL.SDL_Rect { x = x - Camera.X, y = y - Camera.Y, w = w, h = h };
 			SDL.SDL_RenderFillRect(_renderer, ref rect);
 		}
 
 		public void FillRect(int x, int y, int w, int h, int palette, int color)
 		{
 			SetColor(palette, color);
-			var rect = new SDL.SDL_Rect { x = x, y = y, w = w, h = h };
-			SDL.SDL_RenderFillRect(_renderer, ref rect);
+			FillRect(x, y, w, h);
 		}
 
 		public void SetClipRect(int x, int y, int w, int h)
