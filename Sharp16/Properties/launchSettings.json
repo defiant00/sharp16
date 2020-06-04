@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Sharp16": {
+      "commandName": "Project",
+      "commandLineArgs": "Samples\\Basics.cs"
+    }
+  }
+}

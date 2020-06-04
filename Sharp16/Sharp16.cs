@@ -1,6 +1,7 @@
 ﻿using SDL2;
 using Sharp16.Firmware;
 using System;
+using System.IO;
 
 namespace Sharp16
 {
@@ -13,18 +14,31 @@ namespace Sharp16
 
 		public const int PLAYER_COUNT = 8;
 
-		private static IntPtr _window;
-		private static IntPtr _renderer;
-		private static IntPtr _effectsBuffer;
-		private static bool _fullscreen = false;
-		private static Cartridge _cart;
-		private static int[,] _keyMap;
+		private Config _config;
+		private IntPtr _window;
+		private IntPtr _renderer;
+		private IntPtr _effectsBuffer;
+		private bool _fullscreen = false;
+		private Cartridge _cart;
+		private int[,] _keyMap;
+
+		public Sharp16(string[] args)
+		{
+			_config = new Config(args);
+		}
 
 		public void Run()
 		{
 			InitSDL();
 
-			_cart = new Cartridge { Game = new MainMenu() };
+			if (_config.Files.Count > 0)
+			{
+				_cart = new Cartridge(File.ReadAllText(_config.Files[0]));
+			}
+			else
+			{
+				_cart = new Cartridge { Game = new MainMenu() };
+			}
 			_cart.Game._renderer = _renderer;
 			_cart.Game._effectsBuffer = _effectsBuffer;
 
@@ -94,7 +108,7 @@ namespace Sharp16
 			CleanupSDL();
 		}
 
-		private static void InitSDL()
+		private void InitSDL()
 		{
 			SDL.SDL_SetHint(SDL.SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING, "1");
 			if (SDL.SDL_Init(SDL.SDL_INIT_VIDEO) < 0)
@@ -142,7 +156,7 @@ namespace Sharp16
 			_keyMap[0, 10] = (int)SDL.SDL_Scancode.SDL_SCANCODE_RETURN;
 		}
 
-		private static void CleanupSDL()
+		private void CleanupSDL()
 		{
 			SDL.SDL_DestroyTexture(_effectsBuffer);
 			SDL.SDL_DestroyRenderer(_renderer);

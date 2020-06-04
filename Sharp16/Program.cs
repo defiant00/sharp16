@@ -10,8 +10,7 @@ namespace Sharp16
 	{
 		static void Main(string[] args)
 		{
-			var s16 = new Sharp16();
-			s16.Run();
+			new Sharp16(args).Run();
 		}
 	}
 }
