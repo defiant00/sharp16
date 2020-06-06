@@ -18,6 +18,7 @@ namespace Sharp16
 		private IntPtr _window;
 		private IntPtr _renderer;
 		private IntPtr _effectsBuffer;
+		private IntPtr _sprites;
 		private bool _fullscreen = false;
 		private Cartridge _cart;
 		private int[,] _keyMap;
@@ -34,6 +35,28 @@ namespace Sharp16
 			if (_config.Files.Count > 0)
 			{
 				_cart = new Cartridge(File.ReadAllText(_config.Files[0]));
+
+				// Temporary test code
+				// PICO-8 palette
+				_cart.Game._palettes.Add(new[]
+				{
+					new Color(0, 0, 0, 1),		// black
+					new Color(3, 5, 10, 1),		// dark blue
+					new Color(15, 4, 10, 1),	// dark purple
+					new Color(0, 16, 10, 1),	// dark green
+					new Color(21, 10, 6, 1),	// brown
+					new Color(11, 10, 9, 1),	// dark grey
+					new Color(24, 24, 24, 1),	// light grey
+					new Color(31, 30, 29, 1),	// white
+					new Color(31, 0, 9, 1),		// red
+					new Color(31, 20, 0, 1),	// orange
+					new Color(31, 29, 4, 1),	// yellow
+					new Color(0, 28, 6, 1),		// green
+					new Color(5, 21, 31, 1),	// blue
+					new Color(16, 14, 19, 1),	// lavender
+					new Color(31, 14, 21, 1),	// pink
+					new Color(31, 25, 21, 1),	// light peach
+				});
 			}
 			else
 			{
@@ -41,6 +64,17 @@ namespace Sharp16
 			}
 			_cart.Game._renderer = _renderer;
 			_cart.Game._effectsBuffer = _effectsBuffer;
+			if (_cart.Game.LoadFont)
+			{
+				var font = SDL.SDL_LoadBMP("font.bmp");
+				if (font == IntPtr.Zero)
+				{
+					Console.WriteLine("Unable to load font: " + SDL.SDL_GetError());
+				}
+				_sprites = SDL.SDL_CreateTextureFromSurface(_renderer, font);
+				_cart.Game._sprites = _sprites;
+				SDL.SDL_FreeSurface(font);
+			}
 
 			bool run = true;
 			while (run)
@@ -158,6 +192,7 @@ namespace Sharp16
 
 		private void CleanupSDL()
 		{
+			SDL.SDL_DestroyTexture(_sprites);
 			SDL.SDL_DestroyTexture(_effectsBuffer);
 			SDL.SDL_DestroyRenderer(_renderer);
 			SDL.SDL_DestroyWindow(_window);
