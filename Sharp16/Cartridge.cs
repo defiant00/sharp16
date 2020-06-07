@@ -1,13 +1,21 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text;
 
 namespace Sharp16
 {
+	public class CartAssemblyLoadContext : AssemblyLoadContext
+	{
+		public CartAssemblyLoadContext() : base(true) { }
+		protected override Assembly Load(AssemblyName assemblyName) => null;
+	}
+
 	public class Cartridge
 	{
 		public SharpGame Game = new SharpGame();
@@ -20,21 +28,82 @@ namespace Sharp16
 		private const string PALETTES_START = "__Palettes__";
 		private const string SPRITES_START = "__Sprites__";
 
+		private string _filename;
 		private string _code;
 		private string _maps;
 		private string _palettes;
 		private string _sprites;
 
-		public Cartridge() { }
-
-		public Cartridge(string input)
+		public Cartridge(SharpGame game, IntPtr renderer, IntPtr effectsBuffer, IntPtr font)
 		{
-			Parse(input);
-			Build();
+			Game = game;
+			Game._renderer = renderer;
+			Game._effectsBuffer = effectsBuffer;
+			Game._font = font;
 		}
 
-		public void Save(string file)
+		public Cartridge(string filename, IntPtr renderer, IntPtr effectsBuffer, IntPtr font)
 		{
+			_filename = filename;
+			Parse(File.ReadAllText(filename));
+			Compile();
+			Game._renderer = renderer;
+			Game._effectsBuffer = effectsBuffer;
+			Game._font = font;
+			LoadData();
+			Game.BuildSpriteBuffer();
+		}
+
+		public void Save()
+		{
+			var lines = new List<string> { _code, DATA_START };
+			string palettes = Game._compressedPalettes;
+			if (!string.IsNullOrEmpty(palettes))
+			{
+				lines.Add(PALETTES_START);
+				lines.Add(palettes);
+			}
+			string sprites = Game._compressedSprites;
+			if (!string.IsNullOrEmpty(sprites))
+			{
+				lines.Add(SPRITES_START);
+				lines.Add(sprites);
+			}
+			string maps = Game._compressedMaps;
+			if (!string.IsNullOrEmpty(maps))
+			{
+				lines.Add(MAPS_START);
+				lines.Add(maps);
+			}
+			lines.Add(DATA_END);
+			File.WriteAllLines(_filename, lines);
+		}
+
+		private void LoadData()
+		{
+			Game._compressedPalettes = _palettes;
+			_palettes = null;
+			// TODO - sprites
+			Game._sprites.Add(new Sprite
+			{
+				Size = 8,
+				Palette = 0,
+				Data = new byte[8, 8]{
+					{0,0,4,4,8,8,12,12},
+					{0,0,4,4,8,8,12,12},
+					{1,1,5,5,9,9,13,13},
+					{1,1,5,5,9,9,13,13},
+					{2,2,6,6,10,10,14,14},
+					{2,2,6,6,10,10,14,14},
+					{3,3,7,7,11,11,15,15},
+					{3,3,7,7,11,11,15,15},
+				}
+			});
+
+
+			_sprites = null;
+			// TODO - maps
+			_maps = null;
 		}
 
 		private void Parse(string input)
@@ -82,7 +151,7 @@ namespace Sharp16
 			}
 		}
 
-		private void Build()
+		private void Compile()
 		{
 			Console.Write("Compiling...");
 
@@ -130,8 +199,10 @@ namespace Sharp16
 			}
 		}
 
-		~Cartridge()
+		public void Unload()
 		{
+			Game.Unload();
+			Game = null;
 			_context?.Unload();
 		}
 	}

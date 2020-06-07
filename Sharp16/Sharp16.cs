@@ -1,24 +1,25 @@
 ﻿using SDL2;
 using Sharp16.Firmware;
 using System;
-using System.IO;
 
 namespace Sharp16
 {
 	public class Sharp16
 	{
-		private const int SCREEN_WIDTH = 16 * 24;   // 384
-		private const int SCREEN_HEIGHT = 9 * 24;   // 216
+		public const int SCREEN_WIDTH = 16 * 24;   // 384
+		public const int SCREEN_HEIGHT = 9 * 24;   // 216
+		public const int PLAYER_COUNT = 8;
+		public const int SPRITE_BUFFER_SIZE = 2048;
+		public const int FONT_SIZE = 128;
+
 		private const int SCREEN_FPS = 60;
 		private const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
-
-		public const int PLAYER_COUNT = 8;
 
 		private Config _config;
 		private IntPtr _window;
 		private IntPtr _renderer;
 		private IntPtr _effectsBuffer;
-		private IntPtr _sprites;
+		private IntPtr _font;
 		private bool _fullscreen = false;
 		private Cartridge _cart;
 		private int[,] _keyMap;
@@ -34,46 +35,11 @@ namespace Sharp16
 
 			if (_config.Files.Count > 0)
 			{
-				_cart = new Cartridge(File.ReadAllText(_config.Files[0]));
-
-				// Temporary test code
-				// PICO-8 palette
-				_cart.Game._palettes.Add(new[]
-				{
-					new Color(0, 0, 0, 1),		// black
-					new Color(3, 5, 10, 1),		// dark blue
-					new Color(15, 4, 10, 1),	// dark purple
-					new Color(0, 16, 10, 1),	// dark green
-					new Color(21, 10, 6, 1),	// brown
-					new Color(11, 10, 9, 1),	// dark grey
-					new Color(24, 24, 24, 1),	// light grey
-					new Color(31, 30, 29, 1),	// white
-					new Color(31, 0, 9, 1),		// red
-					new Color(31, 20, 0, 1),	// orange
-					new Color(31, 29, 4, 1),	// yellow
-					new Color(0, 28, 6, 1),		// green
-					new Color(5, 21, 31, 1),	// blue
-					new Color(16, 14, 19, 1),	// lavender
-					new Color(31, 14, 21, 1),	// pink
-					new Color(31, 25, 21, 1),	// light peach
-				});
+				_cart = new Cartridge(_config.Files[0], _renderer, _effectsBuffer, _font);
 			}
 			else
 			{
-				_cart = new Cartridge { Game = new MainMenu() };
-			}
-			_cart.Game._renderer = _renderer;
-			_cart.Game._effectsBuffer = _effectsBuffer;
-			if (_cart.Game.LoadFont)
-			{
-				var font = SDL.SDL_LoadBMP("font.bmp");
-				if (font == IntPtr.Zero)
-				{
-					Console.WriteLine("Unable to load font: " + SDL.SDL_GetError());
-				}
-				_sprites = SDL.SDL_CreateTextureFromSurface(_renderer, font);
-				_cart.Game._sprites = _sprites;
-				SDL.SDL_FreeSurface(font);
+				_cart = new Cartridge(new MainMenu(), _renderer, _effectsBuffer, _font);
 			}
 
 			bool run = true;
@@ -93,6 +59,13 @@ namespace Sharp16
 									{
 										_fullscreen = !_fullscreen;
 										SDL.SDL_SetWindowFullscreen(_window, _fullscreen ? (uint)SDL.SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+									}
+									break;
+								case SDL.SDL_Keycode.SDLK_s:
+									if ((e.key.keysym.mod & SDL.SDL_Keymod.KMOD_CTRL) > 0)
+									{
+										_cart.Save();
+										Console.WriteLine("Saved!");
 									}
 									break;
 								case SDL.SDL_Keycode.SDLK_ESCAPE:
@@ -165,6 +138,12 @@ namespace Sharp16
 			_effectsBuffer = SDL.SDL_CreateTexture(_renderer, SDL.SDL_PIXELFORMAT_RGBA8888, (int)SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH, SCREEN_HEIGHT);
 			SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
 
+			_font = SDL.SDL_LoadBMP("font.bmp");
+			if (_font == IntPtr.Zero)
+			{
+				Console.WriteLine("Unable to load font: " + SDL.SDL_GetError());
+			}
+
 			// Input
 
 			_keyMap = new int[PLAYER_COUNT, 11];
@@ -192,7 +171,7 @@ namespace Sharp16
 
 		private void CleanupSDL()
 		{
-			SDL.SDL_DestroyTexture(_sprites);
+			SDL.SDL_FreeSurface(_font);
 			SDL.SDL_DestroyTexture(_effectsBuffer);
 			SDL.SDL_DestroyRenderer(_renderer);
 			SDL.SDL_DestroyWindow(_window);

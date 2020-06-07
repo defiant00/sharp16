@@ -1,6 +1,7 @@
 ﻿using SDL2;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Sharp16
 {
@@ -14,8 +15,7 @@ namespace Sharp16
 
 	public class SharpGame
 	{
-		public virtual bool LoadFont { get => true; }
-
+		public virtual bool LoadFont => true;
 		public virtual void DrawEffects() { }
 		public virtual void DrawBase() { }
 		public virtual void DrawTop() { }
@@ -24,11 +24,70 @@ namespace Sharp16
 		public Vector2 Camera;
 		public Inputs[] Input = new Inputs[Sharp16.PLAYER_COUNT];
 
-		internal List<Color[]> _palettes = new List<Color[]>();
-		internal Color _drawColor;
 		internal IntPtr _renderer;
+		internal IntPtr _font;
 		internal IntPtr _effectsBuffer;
-		internal IntPtr _sprites;
+		internal IntPtr _spriteBuffer;
+
+		private List<Color[]> _palettes = new List<Color[]>();
+		internal List<Sprite> _sprites = new List<Sprite>();
+		private Color _drawColor;
+
+		private const int DATA_LINE_LENGTH = 80;
+		internal string _compressedPalettes
+		{
+			get
+			{
+				var bp = new BitPacker();
+				bp.Pack((uint)_palettes.Count, 32);
+				for (int p = 0; p < _palettes.Count; p++)
+				{
+					for (int i = 0; i < 16; i++)
+					{
+						bp.Pack((uint)_palettes[p][i].R / 8, 5);
+						bp.Pack((uint)_palettes[p][i].G / 8, 5);
+						bp.Pack((uint)_palettes[p][i].B / 8, 5);
+						bp.Pack((uint)_palettes[p][i].A / 255, 1);
+					}
+				}
+				return SplitToLineLength(bp.CompressedBase64, DATA_LINE_LENGTH);
+			}
+			set
+			{
+				_palettes.Clear();
+				var bp = new BitPacker(value);
+				uint count = bp.Unpack(32);
+				for (uint p = 0; p < count; p++)
+				{
+					var pal = new Color[16];
+					for (int i = 0; i < 16; i++)
+					{
+						byte r = (byte)bp.Unpack(5);
+						byte g = (byte)bp.Unpack(5);
+						byte b = (byte)bp.Unpack(5);
+						byte a = (byte)bp.Unpack(1);
+						pal[i] = new Color(r, g, b, a);
+					}
+					_palettes.Add(pal);
+				}
+			}
+		}
+
+		internal string _compressedSprites
+		{
+			get
+			{
+				return "spr";
+			}
+		}
+
+		internal string _compressedMaps
+		{
+			get
+			{
+				return "maps";
+			}
+		}
 
 		private Dictionary<char, SDL.SDL_Rect> _glyphs = new Dictionary<char, SDL.SDL_Rect>
 		{
@@ -148,6 +207,47 @@ namespace Sharp16
 			SDL.SDL_RenderPresent(_renderer);
 		}
 
+		internal void BuildSpriteBuffer()
+		{
+			var packer = new TexturePacker();
+			SDL.SDL_DestroyTexture(_spriteBuffer);
+			var sprSurface = SDL.SDL_CreateRGBSurfaceWithFormat(0, Sharp16.SPRITE_BUFFER_SIZE, Sharp16.SPRITE_BUFFER_SIZE, 32, SDL.SDL_PIXELFORMAT_RGBA8888);
+			SDL.SDL_BlitSurface(_font, IntPtr.Zero, sprSurface, IntPtr.Zero);
+			packer.Add(Sharp16.FONT_SIZE);
+
+			foreach (var s in _sprites)
+			{
+				var pos = packer.Add(s.Size);
+				s.BufferRect = new SDL.SDL_Rect { x = pos.X, y = pos.Y, w = s.Size, h = s.Size };
+
+				byte[] buffer = new byte[s.Size * s.Size * 4];
+				int i = 0;
+				for (int y = 0; y < s.Size; y++)
+				{
+					for (int x = 0; x < s.Size; x++)
+					{
+						var c = _palettes[s.Palette][s.Data[x, y]];
+						buffer[i++] = c.A;
+						buffer[i++] = c.B;
+						buffer[i++] = c.G;
+						buffer[i++] = c.R;
+					}
+				}
+				unsafe
+				{
+					fixed (byte* p = buffer)
+					{
+						var sprite = SDL.SDL_CreateRGBSurfaceWithFormatFrom((IntPtr)p, s.Size, s.Size, 32, 4 * s.Size, SDL.SDL_PIXELFORMAT_RGBA8888);
+						SDL.SDL_BlitSurface(sprite, IntPtr.Zero, sprSurface, ref s.BufferRect);
+						SDL.SDL_FreeSurface(sprite);
+					}
+				}
+			}
+
+			_spriteBuffer = SDL.SDL_CreateTextureFromSurface(_renderer, sprSurface);
+			SDL.SDL_FreeSurface(sprSurface);
+		}
+
 		public void Clear()
 		{
 			SDL.SDL_RenderFillRect(_renderer, IntPtr.Zero);
@@ -205,13 +305,15 @@ namespace Sharp16
 
 		public void DrawSprite(int sprite, int x, int y)
 		{
-
+			var s = _sprites[sprite];
+			var destRect = new SDL.SDL_Rect { x = x - Camera.X, y = y - Camera.Y, w = s.BufferRect.w, h = s.BufferRect.h };
+			SDL.SDL_RenderCopy(_renderer, _spriteBuffer, ref s.BufferRect, ref destRect);
 		}
 
 		public void DrawText(string text, int x, int y)
 		{
-			SDL.SDL_SetTextureColorMod(_sprites, _drawColor.R, _drawColor.G, _drawColor.B);
-			SDL.SDL_SetTextureAlphaMod(_sprites, _drawColor.A);
+			SDL.SDL_SetTextureColorMod(_spriteBuffer, _drawColor.R, _drawColor.G, _drawColor.B);
+			SDL.SDL_SetTextureAlphaMod(_spriteBuffer, _drawColor.A);
 
 			int curX = x - Camera.X;
 			int curY = y - Camera.Y;
@@ -223,14 +325,14 @@ namespace Sharp16
 					if (g.h > 0)
 					{
 						var destRect = new SDL.SDL_Rect { x = curX, y = curY, w = g.w, h = g.h };
-						SDL.SDL_RenderCopy(_renderer, _sprites, ref g, ref destRect);
+						SDL.SDL_RenderCopy(_renderer, _spriteBuffer, ref g, ref destRect);
 					}
 					curX += g.w + 1;
 				}
 			}
 
-			SDL.SDL_SetTextureColorMod(_sprites, 255, 255, 255);
-			SDL.SDL_SetTextureAlphaMod(_sprites, 255);
+			SDL.SDL_SetTextureColorMod(_spriteBuffer, 255, 255, 255);
+			SDL.SDL_SetTextureAlphaMod(_spriteBuffer, 255);
 		}
 
 		public void DrawText(string text, int x, int y, int palette, int color)
@@ -253,7 +355,15 @@ namespace Sharp16
 
 		public int MeasureText(string text)
 		{
-			return 0;
+			int width = 0;
+			foreach (char c in text)
+			{
+				if (_glyphs.ContainsKey(c))
+				{
+					width += _glyphs[c].w + 1;
+				}
+			}
+			return width > 0 ? width - 1 : 0;
 		}
 
 		public void SetClipRect(int x, int y, int w, int h)
@@ -289,6 +399,24 @@ namespace Sharp16
 					SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_MUL);
 					break;
 			}
+		}
+
+		private string SplitToLineLength(string val, int length)
+		{
+			string remaining = val;
+			var sb = new StringBuilder();
+			while (remaining.Length > length)
+			{
+				sb.AppendLine(remaining.Substring(0, length));
+				remaining = remaining.Substring(length);
+			}
+			sb.Append(remaining);
+			return sb.ToString();
+		}
+
+		internal void Unload()
+		{
+			SDL.SDL_DestroyTexture(_spriteBuffer);
 		}
 	}
 }
