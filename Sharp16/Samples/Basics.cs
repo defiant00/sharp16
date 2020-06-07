@@ -14,6 +14,11 @@
 					DrawSprite(0, x * 8 + 2, y * 8 + 64);
 				}
 			}
+
+			DrawSprite(0, 160, 100, false, false);
+			DrawSprite(0, 168, 100, true, false);
+			DrawSprite(0, 160, 108, false, true);
+			DrawSprite(0, 168, 108, true, true);
 		}
 	}
 }
@@ -22,8 +27,7 @@
 __Palettes__
 Y2RgYAiVZGQQZRGtnBzVu2r3f8NjjH+Ff/Cye/5f3lyvm/1v9W8A
 __Sprites__
-abc
-def
+Y2QAAw4lQQYGIDZOC3UB4fJVMztAePe7u2dA+D9QzX8A
 __Maps__
 789
 024

@@ -57,19 +57,19 @@ namespace Sharp16
 		public void Save()
 		{
 			var lines = new List<string> { _code, DATA_START };
-			string palettes = Game._compressedPalettes;
+			string palettes = Game.CompressedPalettes;
 			if (!string.IsNullOrEmpty(palettes))
 			{
 				lines.Add(PALETTES_START);
 				lines.Add(palettes);
 			}
-			string sprites = Game._compressedSprites;
+			string sprites = Game.CompressedSprites;
 			if (!string.IsNullOrEmpty(sprites))
 			{
 				lines.Add(SPRITES_START);
 				lines.Add(sprites);
 			}
-			string maps = Game._compressedMaps;
+			string maps = Game.CompressedMaps;
 			if (!string.IsNullOrEmpty(maps))
 			{
 				lines.Add(MAPS_START);
@@ -81,28 +81,12 @@ namespace Sharp16
 
 		private void LoadData()
 		{
-			Game._compressedPalettes = _palettes;
+			Game.CompressedPalettes = _palettes;
 			_palettes = null;
-			// TODO - sprites
 
-			Game._sprites.Add(new Sprite
-			{
-				Size = 8,
-				Palette = 0,
-				Data = new byte[64]{
-					0,0,1,1,2,2,3,3,
-					0,0,1,1,2,2,3,3,
-					4,4,5,5,6,6,7,7,
-					4,4,5,5,6,6,7,7,
-					8,8,9,9,10,10,11,11,
-					8,8,9,9,10,10,11,11,
-					12,12,13,13,14,14,15,15,
-					12,12,13,13,14,14,15,15,
-				}
-			});
-
-
+			Game.CompressedSprites = _sprites;
 			_sprites = null;
+
 			// TODO - maps
 			_maps = null;
 		}

@@ -30,24 +30,24 @@ namespace Sharp16
 		internal IntPtr _spriteBuffer;
 
 		private List<Color[]> _palettes = new List<Color[]>();
-		internal List<Sprite> _sprites = new List<Sprite>();
+		private List<Sprite> _sprites = new List<Sprite>();
 		private Color _drawColor;
 
 		private const int DATA_LINE_LENGTH = 80;
-		internal string _compressedPalettes
+		internal string CompressedPalettes
 		{
 			get
 			{
 				var bp = new BitPacker();
-				bp.Pack((uint)_palettes.Count, 32);
-				for (int p = 0; p < _palettes.Count; p++)
+				bp.Pack(_palettes.Count, 32);
+				foreach (var palette in _palettes)
 				{
-					for (int i = 0; i < 16; i++)
+					foreach (var color in palette)
 					{
-						bp.Pack((uint)_palettes[p][i].R / 8, 5);
-						bp.Pack((uint)_palettes[p][i].G / 8, 5);
-						bp.Pack((uint)_palettes[p][i].B / 8, 5);
-						bp.Pack((uint)_palettes[p][i].A / 255, 1);
+						bp.Pack(color.R / 8, 5);
+						bp.Pack(color.G / 8, 5);
+						bp.Pack(color.B / 8, 5);
+						bp.Pack(color.A / 255, 1);
 					}
 				}
 				return SplitToLineLength(bp.CompressedBase64, DATA_LINE_LENGTH);
@@ -73,16 +73,48 @@ namespace Sharp16
 			}
 		}
 
-		internal string _compressedSprites
+		internal string CompressedSprites
 		{
 			get
 			{
-				return "spr";
+				var bp = new BitPacker();
+				bp.Pack(_sprites.Count, 32);
+				foreach (var sprite in _sprites)
+				{
+					bp.Pack(sprite.Size, 8);
+					bp.Pack(sprite.Palette, 16);
+					bp.Pack(sprite.Flags, 16);
+					foreach (byte b in sprite.Data)
+					{
+						bp.Pack(b, 4);
+					}
+				}
+				return SplitToLineLength(bp.CompressedBase64, DATA_LINE_LENGTH);
 			}
-			set { }
+			set
+			{
+				_sprites.Clear();
+				var bp = new BitPacker(value);
+				uint count = bp.Unpack(32);
+				for (uint s = 0; s < count; s++)
+				{
+					var sprite = new Sprite
+					{
+						Size = (int)bp.Unpack(8),
+						Palette = (int)bp.Unpack(16),
+						Flags = (int)bp.Unpack(16)
+					};
+					sprite.Data = new byte[sprite.Size * sprite.Size];
+					for (int i = 0; i < sprite.Data.Length; i++)
+					{
+						sprite.Data[i] = (byte)bp.Unpack(4);
+					}
+					_sprites.Add(sprite);
+				}
+			}
 		}
 
-		internal string _compressedMaps
+		internal string CompressedMaps
 		{
 			get
 			{
@@ -214,8 +246,12 @@ namespace Sharp16
 			var packer = new TexturePacker();
 			SDL.SDL_DestroyTexture(_spriteBuffer);
 			var sprSurface = SDL.SDL_CreateRGBSurfaceWithFormat(0, Sharp16.SPRITE_BUFFER_SIZE, Sharp16.SPRITE_BUFFER_SIZE, 32, SDL.SDL_PIXELFORMAT_ARGB8888);
-			SDL.SDL_BlitSurface(_font, IntPtr.Zero, sprSurface, IntPtr.Zero);
-			packer.Add(Sharp16.FONT_SIZE);
+
+			if (LoadFont)
+			{
+				SDL.SDL_BlitSurface(_font, IntPtr.Zero, sprSurface, IntPtr.Zero);
+				packer.Add(Sharp16.FONT_SIZE);
+			}
 
 			foreach (var s in _sprites)
 			{
@@ -302,11 +338,13 @@ namespace Sharp16
 			DrawRect(x, y, w, h);
 		}
 
-		public void DrawSprite(int sprite, int x, int y)
+		public void DrawSprite(int sprite, int x, int y, bool flipH = false, bool flipV = false)
 		{
 			var s = _sprites[sprite];
 			var destRect = new SDL.SDL_Rect { x = x - Camera.X, y = y - Camera.Y, w = s.BufferRect.w, h = s.BufferRect.h };
-			SDL.SDL_RenderCopy(_renderer, _spriteBuffer, ref s.BufferRect, ref destRect);
+			var flip = (flipH ? SDL.SDL_RendererFlip.SDL_FLIP_HORIZONTAL : SDL.SDL_RendererFlip.SDL_FLIP_NONE) |
+				(flipV ? SDL.SDL_RendererFlip.SDL_FLIP_VERTICAL : SDL.SDL_RendererFlip.SDL_FLIP_NONE);
+			SDL.SDL_RenderCopyEx(_renderer, _spriteBuffer, ref s.BufferRect, ref destRect, 0, IntPtr.Zero, flip);
 		}
 
 		public void DrawText(string text, int x, int y)
@@ -400,7 +438,7 @@ namespace Sharp16
 			}
 		}
 
-		private string SplitToLineLength(string val, int length)
+		private static string SplitToLineLength(string val, int length)
 		{
 			string remaining = val;
 			var sb = new StringBuilder();

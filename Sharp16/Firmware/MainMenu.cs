@@ -5,7 +5,7 @@
 		public MainMenu()
 		{
 			// PICO-8 palette
-			_compressedPalettes = "Y2RgYAiVZGQQZRGtnBzVu2r3f8NjjH+Ff/Cye/5f3lyvm/1v9W8A";
+			CompressedPalettes = "Y2RgYAiVZGQQZRGtnBzVu2r3f8NjjH+Ff/Cye/5f3lyvm/1v9W8A";
 		}
 
 		public override void DrawBase()

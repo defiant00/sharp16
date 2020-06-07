@@ -4,7 +4,6 @@ namespace Sharp16
 {
 	public class TexturePacker
 	{
-		private const int MIN_SIZE = 8;
 		private TextureBlock _block = new TextureBlock(0, 0, Sharp16.SPRITE_BUFFER_SIZE);
 
 		public Vector2 Add(int size)
@@ -49,7 +48,7 @@ namespace Sharp16
 				X = x;
 				Y = y;
 				Size = size;
-				if (size > MIN_SIZE)
+				if (size > Sprite.MIN_SIZE)
 				{
 					int div2 = size / 2;
 					_children = new TextureBlock[2, 2];

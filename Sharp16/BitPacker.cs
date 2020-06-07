@@ -35,6 +35,8 @@ namespace Sharp16
 			_data.AddRange(iArray);
 		}
 
+		public void Pack(int val, int size) => Pack((uint)val, size);
+
 		public void Pack(uint val, int size)
 		{
 			uint trimmed = Trim(val, size);
