@@ -79,6 +79,7 @@ namespace Sharp16
 			{
 				return "spr";
 			}
+			set { }
 		}
 
 		internal string _compressedMaps
@@ -87,6 +88,7 @@ namespace Sharp16
 			{
 				return "maps";
 			}
+			set { }
 		}
 
 		private Dictionary<char, SDL.SDL_Rect> _glyphs = new Dictionary<char, SDL.SDL_Rect>
@@ -211,7 +213,7 @@ namespace Sharp16
 		{
 			var packer = new TexturePacker();
 			SDL.SDL_DestroyTexture(_spriteBuffer);
-			var sprSurface = SDL.SDL_CreateRGBSurfaceWithFormat(0, Sharp16.SPRITE_BUFFER_SIZE, Sharp16.SPRITE_BUFFER_SIZE, 32, SDL.SDL_PIXELFORMAT_RGBA8888);
+			var sprSurface = SDL.SDL_CreateRGBSurfaceWithFormat(0, Sharp16.SPRITE_BUFFER_SIZE, Sharp16.SPRITE_BUFFER_SIZE, 32, SDL.SDL_PIXELFORMAT_ARGB8888);
 			SDL.SDL_BlitSurface(_font, IntPtr.Zero, sprSurface, IntPtr.Zero);
 			packer.Add(Sharp16.FONT_SIZE);
 
@@ -222,22 +224,19 @@ namespace Sharp16
 
 				byte[] buffer = new byte[s.Size * s.Size * 4];
 				int i = 0;
-				for (int y = 0; y < s.Size; y++)
+				foreach (byte ind in s.Data)
 				{
-					for (int x = 0; x < s.Size; x++)
-					{
-						var c = _palettes[s.Palette][s.Data[x, y]];
-						buffer[i++] = c.A;
-						buffer[i++] = c.B;
-						buffer[i++] = c.G;
-						buffer[i++] = c.R;
-					}
+					var c = _palettes[s.Palette][ind];
+					buffer[i++] = c.B;
+					buffer[i++] = c.G;
+					buffer[i++] = c.R;
+					buffer[i++] = c.A;
 				}
 				unsafe
 				{
 					fixed (byte* p = buffer)
 					{
-						var sprite = SDL.SDL_CreateRGBSurfaceWithFormatFrom((IntPtr)p, s.Size, s.Size, 32, 4 * s.Size, SDL.SDL_PIXELFORMAT_RGBA8888);
+						var sprite = SDL.SDL_CreateRGBSurfaceWithFormatFrom((IntPtr)p, s.Size, s.Size, 32, 4 * s.Size, SDL.SDL_PIXELFORMAT_ARGB8888);
 						SDL.SDL_BlitSurface(sprite, IntPtr.Zero, sprSurface, ref s.BufferRect);
 						SDL.SDL_FreeSurface(sprite);
 					}

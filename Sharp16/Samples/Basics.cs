@@ -7,7 +7,13 @@
 			DrawText("!\"#$%&'()*+,-./0123456789:;<=>?@", 2, 2, 0, 7);
 			DrawText("ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`", 2, 18, 0, 8);
 			DrawText("abcdefghijklmnopqrstuvwxyz{|}~", 2, 34, 0, 12);
-			DrawSprite(0, 2, 64);
+			for (int x = 0; x < 16; x++)
+			{
+				for (int y = 0; y < 16; y++)
+				{
+					DrawSprite(0, x * 8 + 2, y * 8 + 64);
+				}
+			}
 		}
 	}
 }

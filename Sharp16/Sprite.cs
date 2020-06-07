@@ -6,7 +6,7 @@ namespace Sharp16
 	{
 		public int Size;
 		public int Palette;
-		public byte[,] Data;
+		public byte[] Data;
 		public SDL.SDL_Rect BufferRect;
 	}
 }
