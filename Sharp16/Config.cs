@@ -2,20 +2,20 @@
 
 namespace Sharp16
 {
-	public class Config
+	internal class Config
 	{
-		public Dictionary<string, string> Flags = new Dictionary<string, string>();
-		public List<string> Files = new List<string>();
+		internal Dictionary<string, string> Flags = new Dictionary<string, string>();
+		internal List<string> Files = new List<string>();
 
-		public bool IsSet(string flag) => Flags.ContainsKey(flag);
+		internal bool IsSet(string flag) => Flags.ContainsKey(flag);
 
-		public string this[string flag]
+		internal string this[string flag]
 		{
 			get => Flags[flag];
 			set => Flags[flag] = value;
 		}
 
-		public Config(string[] args)
+		internal Config(string[] args)
 		{
 			if (args.Length > 0)
 			{

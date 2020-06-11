@@ -15,32 +15,27 @@ namespace Sharp16
 		private const int SCREEN_FPS = 60;
 		private const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
+		internal static Inputs[] _input = new Inputs[PLAYER_COUNT];
+
 		private Config _config;
 		private IntPtr _window;
 		private IntPtr _renderer;
 		private IntPtr _effectsBuffer;
 		private IntPtr _font;
 		private bool _fullscreen = false;
-		private Cartridge _cart;
+		private SharpOS _os;
 		private int[,] _keyMap;
 
-		public Sharp16(string[] args)
+		internal Sharp16(string[] args)
 		{
 			_config = new Config(args);
 		}
 
-		public void Run()
+		internal void Run()
 		{
 			InitSDL();
 
-			if (_config.Files.Count > 0)
-			{
-				_cart = new Cartridge(_config.Files[0], _renderer, _effectsBuffer, _font);
-			}
-			else
-			{
-				_cart = new Cartridge(new MainMenu(), _renderer, _effectsBuffer, _font);
-			}
+			_os = new SharpOS(_config.Files.Count > 0 ? _config.Files[0] : null, _renderer, _effectsBuffer, _font);
 
 			bool run = true;
 			while (run)
@@ -64,12 +59,12 @@ namespace Sharp16
 								case SDL.SDL_Keycode.SDLK_s:
 									if ((e.key.keysym.mod & SDL.SDL_Keymod.KMOD_CTRL) > 0)
 									{
-										_cart.Save();
+										_os.SaveCart();
 										Console.WriteLine("Saved!");
 									}
 									break;
 								case SDL.SDL_Keycode.SDLK_ESCAPE:
-									run = false;
+									_os.ToggleEditor();
 									break;
 							}
 							break;
@@ -85,24 +80,24 @@ namespace Sharp16
 					byte* keys = (byte*)SDL.SDL_GetKeyboardState(out _);
 					for (int i = 0; i < PLAYER_COUNT; i++)
 					{
-						_cart.Game.Input[i].Prior = _cart.Game.Input[i].Current;
-						_cart.Game.Input[i].Current.Up = (_keyMap[i, 0] > -1) && (keys[_keyMap[i, 0]] == 1);
-						_cart.Game.Input[i].Current.Down = (_keyMap[i, 1] > -1) && (keys[_keyMap[i, 1]] == 1);
-						_cart.Game.Input[i].Current.Left = (_keyMap[i, 2] > -1) && (keys[_keyMap[i, 2]] == 1);
-						_cart.Game.Input[i].Current.Right = (_keyMap[i, 3] > -1) && (keys[_keyMap[i, 3]] == 1);
-						_cart.Game.Input[i].Current.A = (_keyMap[i, 4] > -1) && (keys[_keyMap[i, 4]] == 1);
-						_cart.Game.Input[i].Current.B = (_keyMap[i, 5] > -1) && (keys[_keyMap[i, 5]] == 1);
-						_cart.Game.Input[i].Current.X = (_keyMap[i, 6] > -1) && (keys[_keyMap[i, 6]] == 1);
-						_cart.Game.Input[i].Current.Y = (_keyMap[i, 7] > -1) && (keys[_keyMap[i, 7]] == 1);
-						_cart.Game.Input[i].Current.L = (_keyMap[i, 8] > -1) && (keys[_keyMap[i, 8]] == 1);
-						_cart.Game.Input[i].Current.R = (_keyMap[i, 9] > -1) && (keys[_keyMap[i, 9]] == 1);
-						_cart.Game.Input[i].Current.Start = (_keyMap[i, 10] > -1) && (keys[_keyMap[i, 10]] == 1);
+						_input[i].Prior = _input[i].Current;
+						_input[i].Current.Up = (_keyMap[i, 0] > -1) && (keys[_keyMap[i, 0]] == 1);
+						_input[i].Current.Down = (_keyMap[i, 1] > -1) && (keys[_keyMap[i, 1]] == 1);
+						_input[i].Current.Left = (_keyMap[i, 2] > -1) && (keys[_keyMap[i, 2]] == 1);
+						_input[i].Current.Right = (_keyMap[i, 3] > -1) && (keys[_keyMap[i, 3]] == 1);
+						_input[i].Current.A = (_keyMap[i, 4] > -1) && (keys[_keyMap[i, 4]] == 1);
+						_input[i].Current.B = (_keyMap[i, 5] > -1) && (keys[_keyMap[i, 5]] == 1);
+						_input[i].Current.X = (_keyMap[i, 6] > -1) && (keys[_keyMap[i, 6]] == 1);
+						_input[i].Current.Y = (_keyMap[i, 7] > -1) && (keys[_keyMap[i, 7]] == 1);
+						_input[i].Current.L = (_keyMap[i, 8] > -1) && (keys[_keyMap[i, 8]] == 1);
+						_input[i].Current.R = (_keyMap[i, 9] > -1) && (keys[_keyMap[i, 9]] == 1);
+						_input[i].Current.Start = (_keyMap[i, 10] > -1) && (keys[_keyMap[i, 10]] == 1);
 					}
 				}
 
-				// Update and draw game
-				_cart.Game.Update();
-				_cart.Game.Draw();
+				// Update and draw
+				_os.Update();
+				_os.Draw();
 
 				// Operate at a fixed 60 fps
 				uint ticksTaken = SDL.SDL_GetTicks() - startTicks;
@@ -137,7 +132,7 @@ namespace Sharp16
 			SDL.SDL_RenderSetLogicalSize(_renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 			_effectsBuffer = SDL.SDL_CreateTexture(_renderer, SDL.SDL_PIXELFORMAT_ARGB8888, (int)SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH, SCREEN_HEIGHT);
 			SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
-			
+
 			_font = SDL.SDL_LoadBMP("font.bmp");
 			if (_font == IntPtr.Zero)
 			{
@@ -171,6 +166,7 @@ namespace Sharp16
 
 		private void CleanupSDL()
 		{
+			_os.Unload();
 			SDL.SDL_FreeSurface(_font);
 			SDL.SDL_DestroyTexture(_effectsBuffer);
 			SDL.SDL_DestroyRenderer(_renderer);

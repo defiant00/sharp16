@@ -10,15 +10,15 @@ using System.Text;
 
 namespace Sharp16
 {
-	public class CartAssemblyLoadContext : AssemblyLoadContext
+	internal class CartAssemblyLoadContext : AssemblyLoadContext
 	{
-		public CartAssemblyLoadContext() : base(true) { }
+		internal CartAssemblyLoadContext() : base(true) { }
 		protected override Assembly Load(AssemblyName assemblyName) => null;
 	}
 
-	public class Cartridge
+	internal class Cartridge
 	{
-		public SharpGame Game = new SharpGame();
+		internal SharpGame Game = new SharpGame();
 		private static readonly string SystemRuntimeLocation = Assembly.Load("System.Runtime").Location;
 		private CartAssemblyLoadContext _context;
 
@@ -34,15 +34,7 @@ namespace Sharp16
 		private string _palettes;
 		private string _sprites;
 
-		public Cartridge(SharpGame game, IntPtr renderer, IntPtr effectsBuffer, IntPtr font)
-		{
-			Game = game;
-			Game._renderer = renderer;
-			Game._effectsBuffer = effectsBuffer;
-			Game._font = font;
-		}
-
-		public Cartridge(string filename, IntPtr renderer, IntPtr effectsBuffer, IntPtr font)
+		internal Cartridge(string filename, IntPtr renderer, IntPtr effectsBuffer, IntPtr font)
 		{
 			_filename = filename;
 			Parse(File.ReadAllText(filename));
@@ -54,7 +46,7 @@ namespace Sharp16
 			Game.BuildSpriteBuffer();
 		}
 
-		public void Save()
+		internal void Save()
 		{
 			var lines = new List<string> { _code, DATA_START };
 			string palettes = Game.CompressedPalettes;
@@ -184,7 +176,7 @@ namespace Sharp16
 			}
 		}
 
-		public void Unload()
+		internal void Unload()
 		{
 			Game.Unload();
 			Game = null;

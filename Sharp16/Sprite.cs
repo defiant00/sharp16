@@ -2,14 +2,14 @@
 
 namespace Sharp16
 {
-	public class Sprite
+	internal class Sprite
 	{
-		public const int MIN_SIZE = 8;
+		internal const int MIN_SIZE = 8;
 
-		public int Size;
-		public int Palette;
-		public int Flags;
-		public byte[] Data;
-		public SDL.SDL_Rect BufferRect;
+		internal int Size;
+		internal int Palette;
+		internal int Flags;
+		internal byte[] Data;
+		internal SDL.SDL_Rect BufferRect;
 	}
 }

@@ -2,6 +2,8 @@
 {
 	class Basics : SharpGame
 	{
+		public int xp, yp;
+
 		public override void DrawBase()
 		{
 			DrawText("!\"#$%&'()*+,-./0123456789:;<=>?@", 2, 2, 0, 7);
@@ -15,10 +17,15 @@
 				}
 			}
 
-			DrawSprite(0, 160, 100, false, false);
-			DrawSprite(0, 168, 100, true, false);
-			DrawSprite(0, 160, 108, false, true);
-			DrawSprite(0, 168, 108, true, true);
+			if (Input[0].Current.Up) yp--;
+			else if (Input[0].Current.Down) yp++;
+			if (Input[0].Current.Left) xp--;
+			else if (Input[0].Current.Right) xp++;
+
+			DrawSprite(0, 160 + xp, 100 + yp, false, false);
+			DrawSprite(0, 168 + xp, 100 + yp, true, false);
+			DrawSprite(0, 160 + xp, 108 + yp, false, true);
+			DrawSprite(0, 168 + xp, 108 + yp, true, true);
 		}
 	}
 }

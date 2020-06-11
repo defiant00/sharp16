@@ -6,9 +6,9 @@
 
 namespace Sharp16
 {
-	public class Program
+	internal class Program
 	{
-		static void Main(string[] args)
+		internal static void Main(string[] args)
 		{
 			new Sharp16(args).Run();
 		}

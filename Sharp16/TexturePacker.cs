@@ -2,11 +2,11 @@
 
 namespace Sharp16
 {
-	public class TexturePacker
+	internal class TexturePacker
 	{
 		private TextureBlock _block = new TextureBlock(0, 0, Sharp16.SPRITE_BUFFER_SIZE);
 
-		public Vector2 Add(int size)
+		internal Vector2 Add(int size)
 		{
 			var res = _block.Add(size);
 			if (res.Added)
@@ -18,10 +18,10 @@ namespace Sharp16
 
 		private struct TextureBlockAddResult
 		{
-			public bool Added;
-			public int X, Y;
+			internal bool Added;
+			internal int X, Y;
 
-			public TextureBlockAddResult(bool added, int x, int y)
+			internal TextureBlockAddResult(bool added, int x, int y)
 			{
 				Added = added;
 				X = x;
@@ -31,7 +31,7 @@ namespace Sharp16
 
 		private class TextureBlock
 		{
-			public int X, Y, Size;
+			internal int X, Y, Size;
 			private TextureBlock[,] _children;
 			private bool _full;
 
@@ -43,7 +43,7 @@ namespace Sharp16
 					_children[1, 1].Empty
 				));
 
-			public TextureBlock(int x, int y, int size)
+			internal TextureBlock(int x, int y, int size)
 			{
 				X = x;
 				Y = y;
@@ -62,7 +62,7 @@ namespace Sharp16
 				}
 			}
 
-			public TextureBlockAddResult Add(int size)
+			internal TextureBlockAddResult Add(int size)
 			{
 				if (_full) { return new TextureBlockAddResult(false, 0, 0); }
 

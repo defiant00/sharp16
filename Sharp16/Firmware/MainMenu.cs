@@ -1,8 +1,8 @@
 ﻿namespace Sharp16.Firmware
 {
-	public class MainMenu : SharpGame
+	internal class MainMenu : SharpGame
 	{
-		public MainMenu()
+		internal MainMenu()
 		{
 			// PICO-8 palette
 			CompressedPalettes = "Y2RgYAiVZGQQZRGtnBzVu2r3f8NjjH+Ff/Cye/5f3lyvm/1v9W8A";

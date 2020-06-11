@@ -1,10 +1,10 @@
 ﻿namespace Sharp16
 {
-	public struct Color
+	internal struct Color
 	{
-		public byte R, G, B, A;
+		internal byte R, G, B, A;
 
-		public Color(byte r, byte g, byte b, byte a)
+		internal Color(byte r, byte g, byte b, byte a)
 		{
 			R = (byte)((r << 3) + (r >> 2));
 			G = (byte)((g << 3) + (g >> 2));
