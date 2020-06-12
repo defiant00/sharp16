@@ -25,7 +25,7 @@ namespace Sharp16
 		protected Vector2 Camera;
 
 		internal IntPtr _renderer;
-		internal IntPtr _font;
+		internal IntPtr _fontSurface;
 		internal IntPtr _effectsBuffer;
 		internal IntPtr _spriteBuffer;
 
@@ -39,19 +39,23 @@ namespace Sharp16
 		{
 			get
 			{
-				var bp = new BitPacker();
-				bp.Pack(_palettes.Count, 32);
-				foreach (var palette in _palettes)
+				if (_palettes.Count > 0)
 				{
-					foreach (var color in palette)
+					var bp = new BitPacker();
+					bp.Pack(_palettes.Count, 32);
+					foreach (var palette in _palettes)
 					{
-						bp.Pack(color.R / 8, 5);
-						bp.Pack(color.G / 8, 5);
-						bp.Pack(color.B / 8, 5);
-						bp.Pack(color.A / 255, 1);
+						foreach (var color in palette)
+						{
+							bp.Pack(color.R / 8, 5);
+							bp.Pack(color.G / 8, 5);
+							bp.Pack(color.B / 8, 5);
+							bp.Pack(color.A / 255, 1);
+						}
 					}
+					return SplitToLineLength(bp.CompressedBase64, DATA_LINE_LENGTH);
 				}
-				return SplitToLineLength(bp.CompressedBase64, DATA_LINE_LENGTH);
+				return null;
 			}
 			set
 			{
@@ -78,19 +82,23 @@ namespace Sharp16
 		{
 			get
 			{
-				var bp = new BitPacker();
-				bp.Pack(_sprites.Count, 32);
-				foreach (var sprite in _sprites)
+				if (_sprites.Count > 0)
 				{
-					bp.Pack(sprite.Size, 8);
-					bp.Pack(sprite.Palette, 16);
-					bp.Pack(sprite.Flags, 16);
-					foreach (byte b in sprite.Data)
+					var bp = new BitPacker();
+					bp.Pack(_sprites.Count, 32);
+					foreach (var sprite in _sprites)
 					{
-						bp.Pack(b, 4);
+						bp.Pack(sprite.Size, 8);
+						bp.Pack(sprite.Palette, 16);
+						bp.Pack(sprite.Flags, 16);
+						foreach (byte b in sprite.Data)
+						{
+							bp.Pack(b, 4);
+						}
 					}
+					return SplitToLineLength(bp.CompressedBase64, DATA_LINE_LENGTH);
 				}
-				return SplitToLineLength(bp.CompressedBase64, DATA_LINE_LENGTH);
+				return null;
 			}
 			set
 			{
@@ -150,7 +158,7 @@ namespace Sharp16
 
 			if (LoadFont)
 			{
-				SDL.SDL_BlitSurface(_font, IntPtr.Zero, sprSurface, IntPtr.Zero);
+				SDL.SDL_BlitSurface(_fontSurface, IntPtr.Zero, sprSurface, IntPtr.Zero);
 				packer.Add(Sharp16.FONT_SIZE);
 			}
 

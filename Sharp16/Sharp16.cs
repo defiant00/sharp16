@@ -1,9 +1,22 @@
-﻿using SDL2;
-using Sharp16.Firmware;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using SDL2;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.Loader;
+using System.Text;
 
 namespace Sharp16
 {
+	internal class CartAssemblyLoadContext : AssemblyLoadContext
+	{
+		internal CartAssemblyLoadContext() : base(true) { }
+		protected override Assembly Load(AssemblyName assemblyName) => null;
+	}
+
 	public class Sharp16
 	{
 		public const int SCREEN_WIDTH = 16 * 24;   // 384
@@ -15,16 +28,33 @@ namespace Sharp16
 		private const int SCREEN_FPS = 60;
 		private const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
+		private const string DATA_START = "/* __Data__";
+		private const string DATA_END = "*/";
+		private const string MAPS_START = "__Maps__";
+		private const string PALETTES_START = "__Palettes__";
+		private const string SPRITES_START = "__Sprites__";
+
+		private static readonly string SystemRuntimeLocation = Assembly.Load("System.Runtime").Location;
+
 		internal static Inputs[] _input = new Inputs[PLAYER_COUNT];
 
 		private Config _config;
 		private IntPtr _window;
 		private IntPtr _renderer;
 		private IntPtr _effectsBuffer;
-		private IntPtr _font;
+		private IntPtr _fontSurface;
+		private IntPtr _fontTexture;
 		private bool _fullscreen = false;
-		private SharpOS _os;
 		private int[,] _keyMap;
+		private SharpGame _game = new SharpGame();
+		private CartAssemblyLoadContext _cartAssemblyContext;
+		private bool _inEditor;
+
+		private string _cartFileName;
+		private string _cartCode;
+		private string _cartPalettes;
+		private string _cartSprites;
+		private string _cartMaps;
 
 		internal Sharp16(string[] args)
 		{
@@ -33,9 +63,19 @@ namespace Sharp16
 
 		internal void Run()
 		{
-			InitSDL();
+			Init();
 
-			_os = new SharpOS(_config.Files.Count > 0 ? _config.Files[0] : null, _renderer, _effectsBuffer, _font);
+			if (_config.Files.Count > 0)
+			{
+				_cartFileName = _config.Files[0];
+				ParseCart(File.ReadAllText(_cartFileName));
+				CompileCart();
+				_game._renderer = _renderer;
+				_game._effectsBuffer = _effectsBuffer;
+				_game._fontSurface = _fontSurface;
+				LoadCartData();
+				_game.BuildSpriteBuffer();
+			}
 
 			bool run = true;
 			while (run)
@@ -59,12 +99,12 @@ namespace Sharp16
 								case SDL.SDL_Keycode.SDLK_s:
 									if ((e.key.keysym.mod & SDL.SDL_Keymod.KMOD_CTRL) > 0)
 									{
-										_os.SaveCart();
+										SaveCart();
 										Console.WriteLine("Saved!");
 									}
 									break;
 								case SDL.SDL_Keycode.SDLK_ESCAPE:
-									_os.ToggleEditor();
+									_inEditor = !_inEditor;
 									break;
 							}
 							break;
@@ -95,9 +135,8 @@ namespace Sharp16
 					}
 				}
 
-				// Update and draw
-				_os.Update();
-				_os.Draw();
+				Update();
+				Draw();
 
 				// Operate at a fixed 60 fps
 				uint ticksTaken = SDL.SDL_GetTicks() - startTicks;
@@ -107,10 +146,161 @@ namespace Sharp16
 				}
 			}
 
-			CleanupSDL();
+			Cleanup();
 		}
 
-		private void InitSDL()
+		private void Draw()
+		{
+			if (_inEditor)
+			{
+				SDL.SDL_SetRenderTarget(_renderer, IntPtr.Zero);
+				SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
+				SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
+				SDL.SDL_RenderClear(_renderer);
+				Text.Draw(_renderer, _fontTexture, "In editor...", 2, 2, new Color(31, 31, 31, 1));
+				SDL.SDL_RenderPresent(_renderer);
+			}
+			else { _game.Draw(); }
+		}
+
+		private void Update()
+		{
+			if (_inEditor) { }
+			else { _game.Update(); }
+		}
+
+		private void ParseCart(string input)
+		{
+			int ind = input.IndexOf(DATA_START);
+			if (ind > -1)
+			{
+				_cartCode = input.Substring(0, ind);
+				string data = input.Substring(ind);
+				string[] lines = data.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+				string section = null;
+				var dataBuffer = new StringBuilder();
+				foreach (string line in lines)
+				{
+					string tLine = line.Trim();
+					if (tLine.StartsWith("__"))
+					{
+						PopulateCartData(section, dataBuffer.ToString());
+						section = tLine;
+						dataBuffer.Clear();
+					}
+					else if (tLine != DATA_END)
+					{
+						dataBuffer.Append(tLine);
+					}
+				}
+				PopulateCartData(section, dataBuffer.ToString());
+			}
+			else { _cartCode = input; }
+		}
+
+		private void PopulateCartData(string section, string data)
+		{
+			switch (section)
+			{
+				case PALETTES_START:
+					_cartPalettes = data;
+					break;
+				case SPRITES_START:
+					_cartSprites = data;
+					break;
+				case MAPS_START:
+					_cartMaps = data;
+					break;
+			}
+		}
+
+		private void CompileCart()
+		{
+			Console.Write("Compiling...");
+
+			var compilation = CSharpCompilation.Create("cart.dll", new[] { SyntaxFactory.ParseSyntaxTree(_cartCode) },
+				new[]
+				{
+					MetadataReference.CreateFromFile(typeof(Program).Assembly.Location),
+					MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+					MetadataReference.CreateFromFile(SystemRuntimeLocation),
+					MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
+				},
+				new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+			var errors = compilation.GetDiagnostics();
+			if (errors.Length > 0)
+			{
+				Console.WriteLine("Errors:");
+				foreach (var e in errors)
+				{
+					Console.WriteLine(e);
+				}
+			}
+			else
+			{
+				_cartAssemblyContext?.Unload();
+				_cartAssemblyContext = new CartAssemblyLoadContext();
+				Assembly compiledAssembly;
+				using (var ms = new MemoryStream())
+				{
+					var res = compilation.Emit(ms);
+					ms.Seek(0, SeekOrigin.Begin);
+					compiledAssembly = _cartAssemblyContext.LoadFromStream(ms);
+				}
+
+				var compiledType = compiledAssembly.GetTypes().FirstOrDefault(t => t.IsSubclassOf(typeof(SharpGame)));
+				if (compiledType == null)
+				{
+					Console.WriteLine("Error:");
+					Console.WriteLine("No SharpGame defined.");
+				}
+				else
+				{
+					_game = (SharpGame)Activator.CreateInstance(compiledType);
+					Console.WriteLine("Done!");
+				}
+			}
+		}
+
+		private void SaveCart()
+		{
+			var lines = new List<string> { _cartCode, DATA_START };
+			string palettes = _game.CompressedPalettes;
+			if (!string.IsNullOrEmpty(palettes))
+			{
+				lines.Add(PALETTES_START);
+				lines.Add(palettes);
+			}
+			string sprites = _game.CompressedSprites;
+			if (!string.IsNullOrEmpty(sprites))
+			{
+				lines.Add(SPRITES_START);
+				lines.Add(sprites);
+			}
+			string maps = _game.CompressedMaps;
+			if (!string.IsNullOrEmpty(maps))
+			{
+				lines.Add(MAPS_START);
+				lines.Add(maps);
+			}
+			lines.Add(DATA_END);
+			File.WriteAllLines(_cartFileName, lines);
+		}
+
+		private void LoadCartData()
+		{
+			_game.CompressedPalettes = _cartPalettes;
+			_cartPalettes = null;
+
+			_game.CompressedSprites = _cartSprites;
+			_cartSprites = null;
+
+			// TODO - maps
+			_cartMaps = null;
+		}
+
+		private void Init()
 		{
 			SDL.SDL_SetHint(SDL.SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING, "1");
 			if (SDL.SDL_Init(SDL.SDL_INIT_VIDEO) < 0)
@@ -133,11 +323,12 @@ namespace Sharp16
 			_effectsBuffer = SDL.SDL_CreateTexture(_renderer, SDL.SDL_PIXELFORMAT_ARGB8888, (int)SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH, SCREEN_HEIGHT);
 			SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
 
-			_font = SDL.SDL_LoadBMP("font.bmp");
-			if (_font == IntPtr.Zero)
+			_fontSurface = SDL.SDL_LoadBMP("font.bmp");
+			if (_fontSurface == IntPtr.Zero)
 			{
 				Console.WriteLine("Unable to load font: " + SDL.SDL_GetError());
 			}
+			_fontTexture = SDL.SDL_CreateTextureFromSurface(_renderer, _fontSurface);
 
 			// Input
 
@@ -164,10 +355,13 @@ namespace Sharp16
 			_keyMap[0, 10] = (int)SDL.SDL_Scancode.SDL_SCANCODE_RETURN;
 		}
 
-		private void CleanupSDL()
+		private void Cleanup()
 		{
-			_os.Unload();
-			SDL.SDL_FreeSurface(_font);
+			_game?.Unload();
+			_game = null;
+			_cartAssemblyContext?.Unload();
+			SDL.SDL_DestroyTexture(_fontTexture);
+			SDL.SDL_FreeSurface(_fontSurface);
 			SDL.SDL_DestroyTexture(_effectsBuffer);
 			SDL.SDL_DestroyRenderer(_renderer);
 			SDL.SDL_DestroyWindow(_window);

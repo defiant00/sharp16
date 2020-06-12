@@ -106,10 +106,10 @@ namespace Sharp16
 			{'~', new SDL.SDL_Rect{x = 41, y = 55, w = 6, h = 11}},
 		};
 
-		internal static void Draw(IntPtr renderer, IntPtr font, string text, int x, int y, Color color)
+		internal static void Draw(IntPtr renderer, IntPtr fontTexture, string text, int x, int y, Color color)
 		{
-			SDL.SDL_SetTextureColorMod(font, color.R, color.G, color.B);
-			SDL.SDL_SetTextureAlphaMod(font, color.A);
+			SDL.SDL_SetTextureColorMod(fontTexture, color.R, color.G, color.B);
+			SDL.SDL_SetTextureAlphaMod(fontTexture, color.A);
 
 			int curX = x;
 			foreach (char c in text)
@@ -120,14 +120,14 @@ namespace Sharp16
 					if (g.h > 0)
 					{
 						var destRect = new SDL.SDL_Rect { x = curX, y = y, w = g.w, h = g.h };
-						SDL.SDL_RenderCopy(renderer, font, ref g, ref destRect);
+						SDL.SDL_RenderCopy(renderer, fontTexture, ref g, ref destRect);
 					}
 					curX += g.w + 1;
 				}
 			}
 
-			SDL.SDL_SetTextureColorMod(font, 255, 255, 255);
-			SDL.SDL_SetTextureAlphaMod(font, 255);
+			SDL.SDL_SetTextureColorMod(fontTexture, 255, 255, 255);
+			SDL.SDL_SetTextureAlphaMod(fontTexture, 255);
 		}
 
 		internal static int Measure(string text)
