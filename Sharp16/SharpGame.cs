@@ -16,6 +16,7 @@ namespace Sharp16
 	public class SharpGame
 	{
 		public virtual bool LoadFont => true;
+		public virtual void Init() { }
 		public virtual void DrawEffects() { }
 		public virtual void DrawBase() { }
 		public virtual void DrawTop() { }
@@ -26,6 +27,7 @@ namespace Sharp16
 
 		internal IntPtr _renderer;
 		internal IntPtr _fontSurface;
+		internal IntPtr _mainBuffer;
 		internal IntPtr _effectsBuffer;
 		internal IntPtr _spriteBuffer;
 
@@ -134,12 +136,14 @@ namespace Sharp16
 
 		internal void Draw()
 		{
+			// Effects
 			SDL.SDL_SetRenderTarget(_renderer, _effectsBuffer);
 			SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
 			SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 0);
 			SDL.SDL_RenderClear(_renderer);
 			DrawEffects();
-			SDL.SDL_SetRenderTarget(_renderer, IntPtr.Zero);
+			// Main
+			SDL.SDL_SetRenderTarget(_renderer, _mainBuffer);
 			SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
 			SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
 			SDL.SDL_RenderClear(_renderer);
@@ -147,7 +151,6 @@ namespace Sharp16
 			SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
 			SDL.SDL_RenderCopy(_renderer, _effectsBuffer, IntPtr.Zero, IntPtr.Zero);
 			DrawTop();
-			SDL.SDL_RenderPresent(_renderer);
 		}
 
 		internal void BuildSpriteBuffer()
@@ -192,10 +195,7 @@ namespace Sharp16
 			SDL.SDL_FreeSurface(sprSurface);
 		}
 
-		protected void Clear()
-		{
-			SDL.SDL_RenderFillRect(_renderer, IntPtr.Zero);
-		}
+		protected void Clear() => SDL.SDL_RenderClear(_renderer);
 
 		protected void Clear(int palette, int color)
 		{
@@ -203,10 +203,7 @@ namespace Sharp16
 			Clear();
 		}
 
-		protected void ClearClipRect()
-		{
-			SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
-		}
+		protected void ClearClipRect() => SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
 
 		protected void DrawLine(int x1, int y1, int x2, int y2)
 		{
@@ -224,10 +221,7 @@ namespace Sharp16
 
 		}
 
-		protected void DrawPoint(int x, int y)
-		{
-			SDL.SDL_RenderDrawPoint(_renderer, x - Camera.X, y - Camera.Y);
-		}
+		protected void DrawPoint(int x, int y) => SDL.SDL_RenderDrawPoint(_renderer, x - Camera.X, y - Camera.Y);
 
 		protected void DrawPoint(int x, int y, int palette, int color)
 		{
@@ -256,10 +250,7 @@ namespace Sharp16
 			SDL.SDL_RenderCopyEx(_renderer, _spriteBuffer, ref s.BufferRect, ref destRect, 0, IntPtr.Zero, flip);
 		}
 
-		protected void DrawText(string text, int x, int y)
-		{
-			Text.Draw(_renderer, _spriteBuffer, text, x - Camera.X, y - Camera.Y, _drawColor);
-		}
+		protected void DrawText(string text, int x, int y) => Text.Draw(_renderer, _spriteBuffer, text, x - Camera.X, y - Camera.Y, _drawColor);
 
 		protected void DrawText(string text, int x, int y, int palette, int color)
 		{

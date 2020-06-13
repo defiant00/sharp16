@@ -41,6 +41,7 @@ namespace Sharp16
 		private Config _config;
 		private IntPtr _window;
 		private IntPtr _renderer;
+		private IntPtr _mainBuffer;
 		private IntPtr _effectsBuffer;
 		private IntPtr _fontSurface;
 		private IntPtr _fontTexture;
@@ -51,6 +52,9 @@ namespace Sharp16
 		private bool _inEditor;
 
 		private Mouse _mouse;
+
+		private SDL.SDL_FRect _screenRect = new SDL.SDL_FRect { x = 0, y = 0, w = SCREEN_WIDTH, h = SCREEN_HEIGHT };
+		private float _screenScale = 1;
 
 		private string _cartFileName;
 		private string _cartCode;
@@ -73,10 +77,12 @@ namespace Sharp16
 				ParseCart(File.ReadAllText(_cartFileName));
 				CompileCart();
 				_game._renderer = _renderer;
+				_game._mainBuffer = _mainBuffer;
 				_game._effectsBuffer = _effectsBuffer;
 				_game._fontSurface = _fontSurface;
 				LoadCartData();
 				_game.BuildSpriteBuffer();
+				_game.Init();
 			}
 
 			bool run = true;
@@ -111,8 +117,20 @@ namespace Sharp16
 							}
 							break;
 						case SDL.SDL_EventType.SDL_MOUSEMOTION:
-							_mouse.Position.X = e.motion.x;
-							_mouse.Position.Y = e.motion.y;
+							_mouse.Position.X = (int)((e.motion.x - _screenRect.x) / _screenScale);
+							_mouse.Position.Y = (int)((e.motion.y - _screenRect.y) / _screenScale);
+							break;
+						case SDL.SDL_EventType.SDL_WINDOWEVENT:
+							if (e.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_SIZE_CHANGED)
+							{
+								int x = e.window.data1;
+								int y = e.window.data2;
+								_screenScale = Math.Min((float)x / SCREEN_WIDTH, (float)y / SCREEN_HEIGHT);
+								_screenRect.w = _screenScale * SCREEN_WIDTH;
+								_screenRect.h = _screenScale * SCREEN_HEIGHT;
+								_screenRect.x = (x - _screenRect.w) / 2;
+								_screenRect.y = (y - _screenRect.h) / 2;
+							}
 							break;
 						case SDL.SDL_EventType.SDL_QUIT:
 							run = false;
@@ -165,14 +183,21 @@ namespace Sharp16
 		{
 			if (_inEditor)
 			{
-				SDL.SDL_SetRenderTarget(_renderer, IntPtr.Zero);
+				SDL.SDL_SetRenderTarget(_renderer, _mainBuffer);
 				SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
 				SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
 				SDL.SDL_RenderClear(_renderer);
 				Text.Draw(_renderer, _fontTexture, "In editor...", 2, 2, new Color(31, 31, 31, 1));
-				SDL.SDL_RenderPresent(_renderer);
 			}
 			else { _game.Draw(); }
+
+			// To Screen
+			SDL.SDL_SetRenderTarget(_renderer, IntPtr.Zero);
+			SDL.SDL_RenderSetClipRect(_renderer, IntPtr.Zero);
+			SDL.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
+			SDL.SDL_RenderClear(_renderer);
+			SDL.SDL_RenderCopyF(_renderer, _mainBuffer, IntPtr.Zero, ref _screenRect);
+			SDL.SDL_RenderPresent(_renderer);
 		}
 
 		private void Update()
@@ -331,7 +356,7 @@ namespace Sharp16
 			}
 
 			_renderer = SDL.SDL_CreateRenderer(_window, -1, SDL.SDL_RendererFlags.SDL_RENDERER_ACCELERATED);
-			SDL.SDL_RenderSetLogicalSize(_renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+			_mainBuffer = SDL.SDL_CreateTexture(_renderer, SDL.SDL_PIXELFORMAT_ARGB8888, (int)SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH, SCREEN_HEIGHT);
 			_effectsBuffer = SDL.SDL_CreateTexture(_renderer, SDL.SDL_PIXELFORMAT_ARGB8888, (int)SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH, SCREEN_HEIGHT);
 			SDL.SDL_SetTextureBlendMode(_effectsBuffer, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
 
@@ -374,6 +399,7 @@ namespace Sharp16
 			_cartAssemblyContext?.Unload();
 			SDL.SDL_DestroyTexture(_fontTexture);
 			SDL.SDL_FreeSurface(_fontSurface);
+			SDL.SDL_DestroyTexture(_mainBuffer);
 			SDL.SDL_DestroyTexture(_effectsBuffer);
 			SDL.SDL_DestroyRenderer(_renderer);
 			SDL.SDL_DestroyWindow(_window);
