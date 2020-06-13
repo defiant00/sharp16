@@ -50,6 +50,8 @@ namespace Sharp16
 		private CartAssemblyLoadContext _cartAssemblyContext;
 		private bool _inEditor;
 
+		private Mouse _mouse;
+
 		private string _cartFileName;
 		private string _cartCode;
 		private string _cartPalettes;
@@ -108,6 +110,10 @@ namespace Sharp16
 									break;
 							}
 							break;
+						case SDL.SDL_EventType.SDL_MOUSEMOTION:
+							_mouse.Position.X = e.motion.x;
+							_mouse.Position.Y = e.motion.y;
+							break;
 						case SDL.SDL_EventType.SDL_QUIT:
 							run = false;
 							break;
@@ -134,6 +140,12 @@ namespace Sharp16
 						_input[i].Current.Start = (_keyMap[i, 10] > -1) && (keys[_keyMap[i, 10]] == 1);
 					}
 				}
+
+				// Mouse
+				_mouse.Prior = _mouse.Current;
+				uint ms = SDL.SDL_GetMouseState(IntPtr.Zero, IntPtr.Zero);
+				_mouse.Current.Left = (ms & SDL.SDL_BUTTON_LMASK) > 0;
+				_mouse.Current.Right = (ms & SDL.SDL_BUTTON_RMASK) > 0;
 
 				Update();
 				Draw();
