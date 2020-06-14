@@ -30,6 +30,8 @@
 					DrawSprite(0, x * 8 + 2, y * 8 + 80);
 				}
 			}
+
+			DrawRect(0, 0, 384, 216, 0, 15);
 		}
 
 		public override void DrawEffects()

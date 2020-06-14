@@ -128,8 +128,8 @@ namespace Sharp16
 								_screenScale = Math.Min((float)x / SCREEN_WIDTH, (float)y / SCREEN_HEIGHT);
 								_screenRect.w = _screenScale * SCREEN_WIDTH;
 								_screenRect.h = _screenScale * SCREEN_HEIGHT;
-								_screenRect.x = (x - _screenRect.w) / 2;
-								_screenRect.y = (y - _screenRect.h) / 2;
+								_screenRect.x = (int)((x - _screenRect.w) / 2);
+								_screenRect.y = (int)((y - _screenRect.h) / 2);
 							}
 							break;
 						case SDL.SDL_EventType.SDL_QUIT:
